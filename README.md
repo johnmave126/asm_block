@@ -78,7 +78,7 @@ unsafe fn f() -> u64 {
     x
 }
 ```
-If we want to reuse `mad!` in another function, we must copy the verbatim
+If we want to reuse `mad` in another function, we must copy the verbatim
 of the macro and change its name. Otherwise we will encounter compilation
 error due to name collision.
 ```rust
@@ -116,7 +116,7 @@ The above code fails with
 ```text
 error: macro 'mad' is already defined
 ```
-If we omit the definition of `mad!` in `g()`, it will compile, but only
+If we omit the definition of `mad` in `g()`, it will compile, but only
 when `g()` is emitted after `f()`. It is unclear which function should house
 the definition, so the only sane option is to house it in a `global_asm!`
 code. But again, it is hard to guarantee that the definition is emitted
