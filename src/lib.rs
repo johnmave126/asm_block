@@ -171,8 +171,8 @@
 //!   macro_rules! mad {
 //!       ([{ $($x: tt)+ }], $y: tt) => {
 //!           asm_block! {
-//!               mul $($x: tt)+, $y;
-//!               lea $($x: tt)+, [$($x: tt)+ + $y];
+//!               mul $($x)+, $y;
+//!               lea $($x)+, [$($x)+ + $y];
 //!           }
 //!       };
 //!       ($x: tt, $y: tt) => { mad!([{ $x }], $y) };

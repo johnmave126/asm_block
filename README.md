@@ -123,7 +123,7 @@ code. But again, it is hard to guarantee that the definition is emitted
 before the actual use.
 
 It is natural to resort to Rust macro in this case, but due to the fact that
-[`asm!`] accepts a template string, substituting metavariables becomes
+`asm!` accepts a template string, substituting metavariables becomes
 tedious.
 ```rust
 macro_rules! mad {
@@ -210,8 +210,8 @@ Now we are able to make calls like `mad!({x}, rbx)`, `mad!([rax], rbp)`, and
   macro_rules! mad {
       ([{ $($x: tt)+ }], $y: tt) => {
           asm_block! {
-              mul $($x: tt)+, $y;
-              lea $($x: tt)+, [$($x: tt)+ + $y];
+              mul $($x)+, $y;
+              lea $($x)+, [$($x)+ + $y];
           }
       };
       ($x: tt, $y: tt) => { mad!([{ $x }], $y) };
