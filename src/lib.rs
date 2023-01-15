@@ -177,7 +177,15 @@
 //!       };
 //!       ($x: tt, $y: tt) => { mad!([{ $x }], $y) };
 //!   }
-//!   # println!("{}", mad!([{ dword ptr [rax] }], ebp));
+//!   # #[cfg(target_arch = "x86_64")]
+//!   # unsafe {
+//!   #     use std::arch::asm;
+//!   #     asm!(
+//!   #         mad!([{ dword ptr [{x}] }], ebp),
+//!   #         
+//!   #         x = out(reg) _
+//!   #     );
+//!   # }
 //!   ```
 //!   But `mad!` must be called with `mad!([{ dword ptr [rax] }], ebp)` instead.
 //! - Currently we don't have an escape hatch to manually inject assembly if the
