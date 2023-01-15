@@ -1,6 +1,6 @@
 [package]
 name = "asm_block"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Shuhao Tan <johnmave126@gmail.com>"]
 categories = ["no-std", "rust-patterns"]
 description = "Translate tokens to string for Rust inline assembly"
