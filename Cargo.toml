@@ -1,11 +1,11 @@
 [package]
 name = "asm_block"
-version = "0.1.1"
+version = "0.1.2"
 authors = ["Shuhao Tan <johnmave126@gmail.com>"]
 categories = ["no-std", "rust-patterns"]
 description = "Translate tokens to string for Rust inline assembly"
 documentation = "https://docs.rs/asm_block"
-edition = "2021"
+edition = "2018"
 keywords = ["macro", "assembly"]
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/johnmave126/asm_block"
