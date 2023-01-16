@@ -208,9 +208,9 @@
 /// 
 /// Transformation rules:
 /// - Convert `;` to `\n`.
-/// - No space before `:`.
-/// - No space after `.`.
-/// - No space before and after `@`.
+/// - No space before and after `@`, `:`.
+/// - Must have a space after `.<ident>`.
+/// - Not violating the previous rule, no space before `.`.
 /// - Concatenate everything inside a pair of `{` and `}` without any space.
 /// - Transcribe all the other tokens as-is (by `stringify!`), and add a space afterwards.
 /// 
@@ -264,27 +264,37 @@ macro_rules! asm_block {
         concat!("\n", $crate::asm_block!($($token)*))
     };
 
-    // no space between an `ident` and a `:`, but add space after
-    ($label: ident : $($token: tt)*) => {
-        concat!(stringify!($label), ": ", $crate::asm_block!($($token)*))
+    // no space between an `ident` and a `:`
+    ($first: ident : $($token: tt)*) => {
+        concat!(stringify!($first), $crate::asm_block!(: $($token)*))
     };
 
-    // no space between an `ident` and a `@`, and no space after
-    ($label: ident @ $($token: tt)*) => {
-        concat!(stringify!($label), "@", $crate::asm_block!($($token)*))
+    // no space between an `ident` and a `@`
+    ($first: ident @ $($token: tt)*) => {
+        concat!(stringify!($first), $crate::asm_block!(@ $($token)*))
     };
 
-    // no space after `.` and `@`
-    (. $($token: tt)*) => {
-        concat!(".", $crate::asm_block!($($token)*))
+    // no space between an `ident` and a `.`
+    ($first: ident . $($token: tt)*) => {
+        concat!(stringify!($first), $crate::asm_block!(. $($token)*))
+    };
+
+    // no space after `:`, `@`
+    (: $($token: tt)*) => {
+        concat!(":", $crate::asm_block!($($token)*))
     };
     (@ $($token: tt)*) => {
         concat!("@", $crate::asm_block!($($token)*))
     };
 
+    // must have a space after `.<tt>`
+    (. $first: tt $($token: tt)*) => {
+        concat!(".", stringify!($first), " ", $crate::asm_block!($($token)*))
+    };
+
     // stringify inside {} and ''
     ({$($token_inside: tt)*} $($token: tt)*) => {
-        concat!("{", $(stringify!($token_inside),)* "} ", $crate::asm_block!($($token)*))
+        concat!("{", $(stringify!($token_inside),)* "}", $crate::asm_block!($($token)*))
     };
 
     // expand `[]` and `()`
@@ -315,7 +325,7 @@ mod tests {
         assert_eq!(asm_block!(%0), "% 0 ");
         assert_eq!(asm_block!(%a), "% a ");
         assert_eq!(asm_block!(%a@0), "% a@0 ");
-        assert_eq!(asm_block!(%{a}), "% {a} ");
+        assert_eq!(asm_block!(%{a}), "% {a}");
         assert_eq!(asm_block!(#0), "# 0 ");
         assert_eq!(asm_block!(#a), "# a ");
         assert_eq!(asm_block!(#a_0), "# a_0 ");
@@ -323,8 +333,11 @@ mod tests {
         assert_eq!(asm_block!(.a), ".a ");
         assert_eq!(asm_block!(.a_0), ".a_0 ");
         assert_eq!(asm_block!("$a"), r#""$a" "#);
-        assert_eq!(asm_block!(${a}), "$ {a} ");
-        assert_eq!(asm_block!(${a:e}), "$ {a:e} ");
+        assert_eq!(asm_block!(${a}), "$ {a}");
+        assert_eq!(asm_block!(${a:e}), "$ {a:e}");
+        assert_eq!(asm_block!(v19.4s), "v19.4s ");
+        assert_eq!(asm_block!(v1.4s), "v1.4s ");
+        assert_eq!(asm_block!({x:v}.4s), "{x:v}.4s ");
         assert_eq!(asm_block!(a), "a ");
         assert_eq!(asm_block!(A), "A ");
         assert_eq!(asm_block!(0), "0 ");
@@ -332,26 +345,26 @@ mod tests {
         assert_eq!(asm_block!(-0x1234), "- 0x1234 ");
         assert_eq!(
             asm_block!(gs:[eax + 4*{b:e} - 0x30]),
-            "gs: [eax + 4 * {b:e} - 0x30 ] "
+            "gs:[eax + 4 * {b:e}- 0x30 ] "
         );
-        assert_eq!(asm_block!(%gs:4(,%eax,8)), "% gs: 4 (, % eax , 8 ) ");
+        assert_eq!(asm_block!(%gs:4(,%eax,8)), "% gs:4 (, % eax , 8 ) ");
     }
 
     #[test]
     fn test_single_instruction() {
-        assert_eq!(asm_block!(mov {x}, [{x}]), "mov {x} , [{x} ] ");
+        assert_eq!(asm_block!(mov {x}, [{x}]), "mov {x}, [{x}] ");
         assert_eq!(asm_block!(inc), "inc ");
-        assert_eq!(asm_block!(_start: mov rax, 1), "_start: mov rax , 1 ");
+        assert_eq!(asm_block!(_start: mov rax, 1), "_start:mov rax , 1 ");
         assert_eq!(asm_block!(mov $1, %rax), "mov $ 1 , % rax ");
-        assert_eq!(asm_block!(section .text), "section .text ");
-        assert_eq!(asm_block!(L001:), "L001: ");
+        assert_eq!(asm_block!(.section .text), ".section .text ");
+        assert_eq!(asm_block!(L001:), "L001:");
         assert_eq!(
             asm_block!(pushl %fs:table(%ebx, %ecx, 8)),
-            "pushl % fs: table (% ebx , % ecx , 8 ) "
+            "pushl % fs:table (% ebx , % ecx , 8 ) "
         );
         assert_eq!(
             asm_block!(message:  db        "Hello, World", 10),
-            r#"message: db "Hello, World" , 10 "#
+            r#"message:db "Hello, World" , 10 "#
         );
         assert_eq!(
             asm_block!(.ascii  "Hello, world\n"),
@@ -362,7 +375,11 @@ mod tests {
             "call _WriteConsoleA@20 "
         );
         assert_eq!(asm_block!(str  fp, [sp, -4]!), "str fp , [sp , - 4 ] ! ");
-        assert_eq!(asm_block!(ldr fp, [{x}], 4), "ldr fp , [{x} ] , 4 ");
+        assert_eq!(asm_block!(ldr fp, [{x}], 4), "ldr fp , [{x}] , 4 ");
+        assert_eq!(
+            asm_block!(add   v19.4s, v2.4s, v4.4s),
+            "add v19.4s , v2.4s , v4.4s "
+        );
     }
 
     #[test]
@@ -397,14 +414,14 @@ call _WriteConsoleA@20
                 add {a:e}, {b:e};
             },
             "\
-mov {t1:e} , {d:e} 
-not {t1:e} 
-add {a:e} , {k:e} 
-or {t1:e} , {b:e} 
-xor {t1:e} , {c:e} 
-lea {a:e} , [{a:e} + {t1:e} + 0xf4d50d87 ] 
-rol {a:e} , 7 
-add {a:e} , {b:e} 
+mov {t1:e}, {d:e}
+not {t1:e}
+add {a:e}, {k:e}
+or {t1:e}, {b:e}
+xor {t1:e}, {c:e}
+lea {a:e}, [{a:e}+ {t1:e}+ 0xf4d50d87 ] 
+rol {a:e}, 7 
+add {a:e}, {b:e}
 "
         );
     }
@@ -430,28 +447,28 @@ add {a:e} , {b:e}
         assert_eq!(
             f!({a}, {b}, {c}, {d}, {x0}, 7, 0xd76aa478, {t1}),
             "\
-mov {t1} , {c} 
-add {a} , {x0} 
-xor {t1} , {d} 
-and {t1} , {b} 
-xor {t1} , {d} 
-lea {a} , [{a} + {t1} + 0xd76aa478 ] 
-rol {a} , 7 
-add {a} , {b} 
+mov {t1}, {c}
+add {a}, {x0}
+xor {t1}, {d}
+and {t1}, {b}
+xor {t1}, {d}
+lea {a}, [{a}+ {t1}+ 0xd76aa478 ] 
+rol {a}, 7 
+add {a}, {b}
 "
         );
 
         assert_eq!(
             f!({a:e}, {b:e}, {c:e}, {d:e}, {x0:e}, 7, 0xd76aa478, {t1:e}),
             "\
-mov {t1:e} , {c:e} 
-add {a:e} , {x0:e} 
-xor {t1:e} , {d:e} 
-and {t1:e} , {b:e} 
-xor {t1:e} , {d:e} 
-lea {a:e} , [{a:e} + {t1:e} + 0xd76aa478 ] 
-rol {a:e} , 7 
-add {a:e} , {b:e} 
+mov {t1:e}, {c:e}
+add {a:e}, {x0:e}
+xor {t1:e}, {d:e}
+and {t1:e}, {b:e}
+xor {t1:e}, {d:e}
+lea {a:e}, [{a:e}+ {t1:e}+ 0xd76aa478 ] 
+rol {a:e}, 7 
+add {a:e}, {b:e}
 "
         );
 

@@ -53,9 +53,10 @@ of the underlying assembler.
 
 Transformation rules:
 - Convert `;` to `\n`.
-- No space before `:`.
-- No space after `.`.
-- No space before and after `@`.
+- Convert `;` to `\n`.
+- No space before and after `@`, `:`.
+- Must have a space after `.<ident>`.
+- Not violating the previous rule, no space before `.`.
 - Concatenate everything inside a pair of `{` and `}` without any space.
 - Transcribe all the other tokens as-is (by `stringify!`), and add a space afterwards.
 
