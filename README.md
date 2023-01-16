@@ -190,7 +190,7 @@ Now we are able to make calls like `mad!({x}, rbx)`, `mad!([rax], rbp)`, and
 # Limitations
 - Due to the tokenization rule of Rust macro, strings enclosed by `'` are
   not supported.
-- [`asm_block!`] mostly consumes tokens one by one, so it is possible to run
+- `asm_block!` mostly consumes tokens one by one, so it is possible to run
   out of recursion limit if the assembly code is long. User needs
   `#![recursion_limit = "<a_larger_value>"]` when encountering the error.
 - `rustfmt` will format `mad!({x}, 5)` into `mad!({ x }, 5)`. While this
